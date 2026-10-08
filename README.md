@@ -27,7 +27,7 @@ No cloud embedding costs. No vendor lock-in for vector search. Just your documen
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/ARYV-AI/OpenRAG.git
+git clone https://github.com/AryvLabs//OpenRAG.git
 cd OpenRAG
 ```
 
@@ -190,7 +190,7 @@ Set `GEMINI_API_KEY` as an environment variable in your cloud platform's setting
 
 Contributions are welcome. Feel free to open PRs with bug fixes and feature suggestions.
 
-Found a bug or have a feature request? [Open an issue](https://github.com/ARYV-AI/OpenRAG/issues) and include:
+Found a bug or have a feature request? [Open an issue](https://github.com/AryvLabs//OpenRAG/issues) and include:
 - A clear description of the problem or suggestion
 - Steps to reproduce (for bugs)
 - Your environment details (OS, Python version)
