@@ -1,5 +1,7 @@
 # OpenRAG
 
+![OpenRAG Screenshot](screenshot/screenshot.png)
+
 A lightweight, open-source Retrieval-Augmented Generation (RAG) library that you can drop your own documents into and get a fully working Q&A app — with a browser UI and a REST API — out of the box.
 
 Built on local [all-MiniLM-L6-v2](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) embeddings, hybrid retrieval with BM25 + vector search, cross-encoder reranking, and Google Gemini for generation.
