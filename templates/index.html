@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OpenRAG</title>
+  <title>{{ rag_name }} - Trained from {{ rag_source }}</title>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -59,11 +59,20 @@
       color: var(--accent);
       text-transform: uppercase;
     }
-    header span {
+    .header-meta {
       margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 16px;
       font-family: var(--mono);
       font-size: 11px;
       color: var(--muted);
+    }
+    .header-meta .powered {
+      color: var(--muted);
+    }
+    .header-meta .powered span {
+      color: var(--accent);
     }
 
     /* ── Chat window ── */
@@ -114,24 +123,6 @@
       color: var(--text);
     }
 
-    /* sources */
-    .sources {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--muted);
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      padding: 0 4px;
-    }
-    .source-tag {
-      background: #1e2028;
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 2px 8px;
-      color: var(--accent);
-    }
-
     .label {
       font-family: var(--mono);
       font-size: 10px;
@@ -141,16 +132,39 @@
       padding: 0 4px;
     }
 
-    /* error flash */
-    .flash-error {
+    /* error bubble */
+    .bubble.error {
       background: #2a1515;
       border: 1px solid #6b2020;
-      border-radius: var(--radius);
-      padding: 10px 16px;
       color: #f87171;
-      font-size: 13px;
       font-family: var(--mono);
-      width: 100%;
+      font-size: 13px;
+    }
+
+    /* thinking indicator */
+    .thinking .bubble {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-style: italic;
+      font-size: 13px;
+    }
+    .dot-pulse {
+      display: flex;
+      gap: 4px;
+    }
+    .dot-pulse span {
+      width: 6px; height: 6px;
+      background: var(--muted);
+      border-radius: 50%;
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    .dot-pulse span:nth-child(2) { animation-delay: 0.2s; }
+    .dot-pulse span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes pulse {
+      0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+      40%           { opacity: 1;   transform: scale(1); }
     }
 
     /* ── Input area ── */
@@ -181,9 +195,7 @@
       transition: border-color 0.2s;
       line-height: 1.5;
     }
-    #query-input:focus {
-      border-color: var(--accent);
-    }
+    #query-input:focus { border-color: var(--accent); }
     #query-input::placeholder { color: var(--muted); }
 
     #submit-btn {
@@ -203,10 +215,7 @@
     }
     #submit-btn:hover  { background: var(--accent2); }
     #submit-btn:active { transform: scale(0.97); }
-    #submit-btn:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
-    }
+    #submit-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
     .hint {
       font-size: 11px;
@@ -216,7 +225,6 @@
       padding-left: 2px;
     }
 
-    /* spinner inside button */
     .spinner {
       display: inline-block;
       width: 13px; height: 13px;
@@ -233,46 +241,29 @@
 
   <header>
     <div class="logo-dot"></div>
-    <h1>OpenRag</h1>
+    <h1>{{ rag_name }}</h1>
+    <div class="header-meta">
+      <span>Trained from {{ rag_source }}</span>
+      <span class="powered">Powered by <span>OpenRAG</span></span>
+    </div>
   </header>
 
   <div id="chat-window">
-    {% if error %}
-      <div class="flash-error">⚠ {{ error }}</div>
-    {% endif %}
-
-    {% if query %}
-      <div class="message user">
-        <div class="label">You</div>
-        <div class="bubble">{{ query }}</div>
-      </div>
-    {% endif %}
-
-    {% if answer %}
-      <div class="message ai">
-        <div class="label">Assistant</div>
-        <div class="bubble">{{ answer }}</div>
-      </div>
-    {% endif %}
-
-    {% if not query and not error %}
-      <div class="message ai">
-        <div class="label">Assistant</div>
-        <div class="bubble">Hello! Please ask your questions — I'll search my knowledge base and respond with an answer.</div>
-      </div>
-    {% endif %}
+    <div class="message ai" id="greeting">
+      <div class="label">Assistant</div>
+      <div class="bubble">Hello! Ask me anything — I'll search the knowledge base and respond based on what I find.</div>
+    </div>
   </div>
 
   <div id="input-area">
-    <form id="query-form" method="POST" action="/">
+    <form id="query-form">
       <textarea
         id="query-input"
-        name="query"
         rows="1"
         placeholder="Ask a question…"
         autocomplete="off"
         autofocus
-      >{{ query or '' }}</textarea>
+      ></textarea>
       <button type="submit" id="submit-btn">Send</button>
     </form>
     <p class="hint">Enter ↵ to send &nbsp;·&nbsp; Shift+Enter for newline</p>
@@ -282,8 +273,9 @@
     const form  = document.getElementById('query-form');
     const input = document.getElementById('query-input');
     const btn   = document.getElementById('submit-btn');
+    const cw    = document.getElementById('chat-window');
 
-    // auto-resize textarea
+    // Auto-resize textarea
     input.addEventListener('input', () => {
       input.style.height = 'auto';
       input.style.height = Math.min(input.scrollHeight, 160) + 'px';
@@ -297,16 +289,86 @@
       }
     });
 
-    // loading state on submit
-    form.addEventListener('submit', () => {
-      if (!input.value.trim()) return;
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spinner"></span>';
-    });
+    function appendMessage(role, text, isError = false) {
+      const wrapper = document.createElement('div');
+      wrapper.className = `message ${role}`;
 
-    // scroll to bottom on load
-    const cw = document.getElementById('chat-window');
-    cw.scrollTop = cw.scrollHeight;
+      const label = document.createElement('div');
+      label.className = 'label';
+      label.textContent = role === 'user' ? 'You' : 'Assistant';
+
+      const bubble = document.createElement('div');
+      bubble.className = isError ? 'bubble error' : 'bubble';
+      bubble.textContent = text;
+
+      wrapper.appendChild(label);
+      wrapper.appendChild(bubble);
+      cw.appendChild(wrapper);
+      cw.scrollTop = cw.scrollHeight;
+      return wrapper;
+    }
+
+    function appendThinking() {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'message ai thinking';
+
+      const label = document.createElement('div');
+      label.className = 'label';
+      label.textContent = 'Assistant';
+
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.innerHTML = '<div class="dot-pulse"><span></span><span></span><span></span></div>';
+
+      wrapper.appendChild(label);
+      wrapper.appendChild(bubble);
+      cw.appendChild(wrapper);
+      cw.scrollTop = cw.scrollHeight;
+      return wrapper;
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const query = input.value.trim();
+      if (!query) return;
+
+      // Show user message, clear input
+      appendMessage('user', query);
+      input.value = '';
+      input.style.height = 'auto';
+
+      // Disable input while waiting
+      btn.disabled = true;
+      input.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>';
+
+      // Show thinking indicator
+      const thinking = appendThinking();
+
+      try {
+        const res = await fetch('/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query }),
+        });
+        const data = await res.json();
+        thinking.remove();
+
+        if (!res.ok || data.error) {
+          appendMessage('ai', data.error || 'Something went wrong.', true);
+        } else {
+          appendMessage('ai', data.answer);
+        }
+      } catch (err) {
+        thinking.remove();
+        appendMessage('ai', 'Network error — please try again.', true);
+      } finally {
+        btn.disabled = false;
+        input.disabled = false;
+        btn.innerHTML = 'Send';
+        input.focus();
+      }
+    });
   </script>
 </body>
 </html>
