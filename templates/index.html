@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ rag_name }} - Trained from {{ rag_source }}</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0e0f11;
+      --surface:  #16181c;
+      --border:   #2a2d35;
+      --accent:   #5dffb6;
+      --accent2:  #3dd68c;
+      --text:     #e8eaf0;
+      --muted:    #6b7280;
+      --user-bg:  #1e2a24;
+      --ai-bg:    #1a1c22;
+      --radius:   10px;
+      --mono:     'IBM Plex Mono', monospace;
+      --sans:     'IBM Plex Sans', sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 15px;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ── Header ── */
+    header {
+      width: 100%;
+      max-width: 760px;
+      padding: 20px 24px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo-dot {
+      width: 10px; height: 10px;
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent);
+      flex-shrink: 0;
+    }
+    header h1 {
+      font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      text-transform: uppercase;
+    }
+    .header-meta {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .header-meta .powered {
+      color: var(--muted);
+    }
+    .header-meta .powered span {
+      color: var(--accent);
+    }
+
+    /* ── Chat window ── */
+    #chat-window {
+      width: 100%;
+      max-width: 760px;
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 24px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    /* ── Message bubbles ── */
+    .message {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      animation: fadeUp 0.25s ease both;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .message.user { align-items: flex-end; }
+    .message.ai   { align-items: flex-start; }
+
+    .bubble {
+      max-width: 82%;
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      line-height: 1.65;
+      font-size: 14.5px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .message.user .bubble {
+      background: var(--user-bg);
+      border: 1px solid #2d4038;
+      color: #d4f7e6;
+    }
+    .message.ai .bubble {
+      background: var(--ai-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0 4px;
+    }
+
+    /* error bubble */
+    .bubble.error {
+      background: #2a1515;
+      border: 1px solid #6b2020;
+      color: #f87171;
+      font-family: var(--mono);
+      font-size: 13px;
+    }
+
+    /* thinking indicator */
+    .thinking .bubble {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-style: italic;
+      font-size: 13px;
+    }
+    .dot-pulse {
+      display: flex;
+      gap: 4px;
+    }
+    .dot-pulse span {
+      width: 6px; height: 6px;
+      background: var(--muted);
+      border-radius: 50%;
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    .dot-pulse span:nth-child(2) { animation-delay: 0.2s; }
+    .dot-pulse span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes pulse {
+      0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+      40%           { opacity: 1;   transform: scale(1); }
+    }
+
+    /* ── Input area ── */
+    #input-area {
+      width: 100%;
+      max-width: 760px;
+      padding: 16px 24px 24px;
+      border-top: 1px solid var(--border);
+    }
+    #query-form {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+    }
+    #query-input {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      padding: 12px 14px;
+      resize: none;
+      min-height: 48px;
+      max-height: 160px;
+      outline: none;
+      transition: border-color 0.2s;
+      line-height: 1.5;
+    }
+    #query-input:focus { border-color: var(--accent); }
+    #query-input::placeholder { color: var(--muted); }
+
+    #submit-btn {
+      background: var(--accent);
+      color: #0e0f11;
+      border: none;
+      border-radius: var(--radius);
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 12px 20px;
+      cursor: pointer;
+      height: 48px;
+      flex-shrink: 0;
+      transition: background 0.2s, transform 0.1s;
+      letter-spacing: 0.04em;
+    }
+    #submit-btn:hover  { background: var(--accent2); }
+    #submit-btn:active { transform: scale(0.97); }
+    #submit-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .hint {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: var(--mono);
+      margin-top: 8px;
+      padding-left: 2px;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 13px; height: 13px;
+      border: 2px solid #0e0f11;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo-dot"></div>
+    <h1>{{ rag_name }}</h1>
+    <div class="header-meta">
+      <span>Trained from {{ rag_source }}</span>
+      <span class="powered">Powered by <span>OpenRAG</span></span>
+    </div>
+  </header>
+
+  <div id="chat-window">
+    <div class="message ai" id="greeting">
+      <div class="label">Assistant</div>
+      <div class="bubble">Hello! Ask me anything — I'll search the knowledge base and respond based on what I find.</div>
+    </div>
+  </div>
+
+  <div id="input-area">
+    <form id="query-form">
+      <textarea
+        id="query-input"
+        rows="1"
+        placeholder="Ask a question…"
+        autocomplete="off"
+        autofocus
+      ></textarea>
+      <button type="submit" id="submit-btn">Send</button>
+    </form>
+    <p class="hint">Enter ↵ to send &nbsp;·&nbsp; Shift+Enter for newline</p>
+  </div>
+
+  <script>
+    const form  = document.getElementById('query-form');
+    const input = document.getElementById('query-input');
+    const btn   = document.getElementById('submit-btn');
+    const cw    = document.getElementById('chat-window');
+
+    // Auto-resize textarea
+    input.addEventListener('input', () => {
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight, 160) + 'px';
+    });
+
+    // Enter sends, Shift+Enter newline
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (input.value.trim()) form.requestSubmit();
+      }
+    });
+
+    function appendMessage(role, text, isError = false) {
+      const wrapper = document.createElement('div');
+      wrapper.className = `message ${role}`;
+
+      const label = document.createElement('div');
+      label.className = 'label';
+      label.textContent = role === 'user' ? 'You' : 'Assistant';
+
+      const bubble = document.createElement('div');
+      bubble.className = isError ? 'bubble error' : 'bubble';
+      bubble.textContent = text;
+
+      wrapper.appendChild(label);
+      wrapper.appendChild(bubble);
+      cw.appendChild(wrapper);
+      cw.scrollTop = cw.scrollHeight;
+      return wrapper;
+    }
+
+    function appendThinking() {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'message ai thinking';
+
+      const label = document.createElement('div');
+      label.className = 'label';
+      label.textContent = 'Assistant';
+
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.innerHTML = '<div class="dot-pulse"><span></span><span></span><span></span></div>';
+
+      wrapper.appendChild(label);
+      wrapper.appendChild(bubble);
+      cw.appendChild(wrapper);
+      cw.scrollTop = cw.scrollHeight;
+      return wrapper;
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const query = input.value.trim();
+      if (!query) return;
+
+      // Show user message, clear input
+      appendMessage('user', query);
+      input.value = '';
+      input.style.height = 'auto';
+
+      // Disable input while waiting
+      btn.disabled = true;
+      input.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>';
+
+      // Show thinking indicator
+      const thinking = appendThinking();
+
+      try {
+        const res = await fetch('/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query }),
+        });
+        const data = await res.json();
+        thinking.remove();
+
+        if (!res.ok || data.error) {
+          appendMessage('ai', data.error || 'Something went wrong.', true);
+        } else {
+          appendMessage('ai', data.answer);
+        }
+      } catch (err) {
+        thinking.remove();
+        appendMessage('ai', 'Network error — please try again.', true);
+      } finally {
+        btn.disabled = false;
+        input.disabled = false;
+        btn.innerHTML = 'Send';
+        input.focus();
+      }
+    });
+  </script>
+</body>
+</html>
